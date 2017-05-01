@@ -9,6 +9,11 @@
 #include <highgui.h>
 #include <math.h>
 
+#define PI 3.14159
+
+double deg2rad(double angle_in_degrees);
+double rad2deg(double angle_in_radians);
+
 void imageCb(const sensor_msgs::ImageConstPtr& msg);
 void createTrackbars();
 void imageFilters(cv_bridge::CvImagePtr &cv_ptr, cv::Mat &imgThresholded, char color);

@@ -18,6 +18,8 @@ Mat imgOriginal_8bit; //obiekt, w którym bedzie przechowana skonwertowana klatk
 vector<Point2f> corners; //wektor elementow point2f - przechowa wspolrzedne znalezionych krancow pol szachownicy
 
 Mat rotation_vector(3,1,cv::DataType<double>::type); // Rotation in axis-angle form
+Mat rotation_array(3,3,cv::DataType<double>::type); // Rotation in axis-angle form
+
 Mat translation_vector(3,1,cv::DataType<double>::type);
 //cv::Mat rvec(3,1,cv::DataType<double>::type);
 int l_punktow;
@@ -28,7 +30,6 @@ Size patternsize(pattern_colls,pattern_rows); //funkcja findchessboardcorners mu
 float bok_kwad=8.0; //w centymetrach
 
 vector<Point3f> corners_3d;
-int licznik_przebiegow = 1;
 
 
 bool first_run=true;
@@ -89,29 +90,29 @@ void imageCb(const sensor_msgs::ImageConstPtr& msg)
 				corners_3d.push_back(Point3d(0,0,0));
 
 			}
-			corners_3d[0].x=0;
-			corners_3d[0].y=0;
+			corners_3d[0].x=-bok_kwad*((pattern_colls-1.0)/2.0);
+			corners_3d[0].y=-bok_kwad*((pattern_rows-1.0)/2.0);
 			corners_3d[0].z=0;
 
 			for (int i=1; i<l_punktow; i++)
 			{
+
 				corners_3d[i].x=corners_3d[i-1].x+bok_kwad;
 
-				if ((i+1)%9==0) // (jak dojedzie do konca wiersza to zeruj x, zwiększ y o wysokosc kwadratu - wypelniamy wyższy wiersz od lewej
-				{
+					if ((i+1)%pattern_colls==0) // (jak dojedzie do konca wiersza to zeruj x, zwiększ y o wysokosc kwadratu - wypelniamy wyższy wiersz od lewej
+					{
 					corners_3d[i].x=0;
 					corners_3d[i].y=corners_3d[i-1].y+bok_kwad;
 
-				}
+					}
 
-				else
+					else
 
-				{
-					corners_3d[i].y=corners_3d[i-1].y; //jak nie dojechal, to nie zmieniaj wysokosci y
-				}
+					{
+						corners_3d[i].y=corners_3d[i-1].y; //jak nie dojechal, to nie zmieniaj wysokosci y
+					}
 
-				corners_3d[i].z=0; //bo szachownica jest plaska
-
+					corners_3d[i].z=0; //bo szachownica jest plaska
 			}
 		}
 		imgOriginal=cv_ptr->image;
@@ -123,7 +124,7 @@ void imageCb(const sensor_msgs::ImageConstPtr& msg)
 
 		if (!patternfound)
 		{
-			cout<<"Nie znalazlem szachownicy!"<< licznik_przebiegow++ <<endl;
+			cout<<"Nie znalazlem szachownicy!"<<endl;
 		}
 
 		if (patternfound)
@@ -131,20 +132,17 @@ void imageCb(const sensor_msgs::ImageConstPtr& msg)
 		{
 
 			solvePnP(corners_3d, corners, camera_matrix, dist_coeffs, rotation_vector, translation_vector);
+			Rodrigues(rotation_vector, rotation_array);
 
-			//wyrzucenie do konsoli
-
-			cout<<"Wektor rotacji"<<rotation_vector<<endl;
+			//cout<<"Wektor rotacji"<<rotation_vector<<endl;
 		    //cout<<"Wektor translacji "<<translation_vector<<endl;
 
 		    cout<<"x: "<<translation_vector.at<double>(0,0) << " y: "<<translation_vector.at<double>( 1,0) << " z: "<<translation_vector.at<double>(2,0) << endl;
-
 
 		}
 
 		drawChessboardCorners(imgOriginal_8bit, patternsize, corners, patternfound); //rysowanie linii
 
-		imshow("Window with detection", cv_ptr->image);
 		imshow ("Original", imgOriginal_8bit);//wyrzucenie do okna
 
 
@@ -153,4 +151,16 @@ void imageCb(const sensor_msgs::ImageConstPtr& msg)
 		cv::waitKey(3);
 
 	}
+}
+
+double deg2rad(double angle_in_degrees)
+{
+	angle_in_degrees=fmod((angle_in_degrees+360),360);
+	return angle_in_degrees * PI / 180.0;
+}
+
+double rad2deg(double angle_in_radians)
+{
+	angle_in_radians=fmod((angle_in_radians+2*PI),(2*PI));
+	return angle_in_radians * 180.0 / PI;
 }

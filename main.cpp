@@ -39,7 +39,7 @@ using namespace std;
 	 Mat imgOriginal_8bit; //obiekt, w którym bedzie przechowana skonwertowana klatka - wymaga tego jedna z funkcji
 
 	 vector<Point2f> corners; //wektor elementow point2f - przechowa wspolrzedne znalezionych krancow pol szachownicy
-	 vector<Point3f> corners_3d;
+	 vector<Point3f> corners_3d; //ten obiekt przyjmuje solvePnP
 	 Size patternsize(9,6); //funkcja findchessboardcorners musi znac wielkosc szachownicy - podaje ja tutaj
 
 	 // Output rotation and translation
@@ -67,8 +67,10 @@ using namespace std;
          //corners wypelnione znalezionymi wspolrzednymi
 
          //jak to zostawie, to program wylacza sie, zwracajac -1
-        // ale kraft pisal - "Za object points i image points podajcie Panowie punkty na obserwowanej szachownicy (znalezione za pomocą findchessboardconers)."
-        //z kolei ta funkcja wypluwa tylko wektory punktów  <point2f> (czy tam 2d), wiec tutaj dokladam sobie zero - a jednak nie dziala
+        // Kraft pisal - "Za object points i image points podajcie Panowie punkty na obserwowanej szachownicy 
+	//(znalezione za pomocą findchessboardconers)."
+        //ta funkcja wypluwa tylko wektory punktów o dwoch wspolrzednych <point2f> (czy tam 2d)
+	//wiec tutaj dokladam sobie zero (?) - solvePnP wymaga punktow o trzech wspolrzednych - a jednak nie dziala
 
          /*for (int i=0; i<corners.size();i++)
          {
@@ -78,6 +80,8 @@ using namespace std;
         	 corners_3d[i].z=0;
 
          }*/
+	    
+	 //sprawdzam czy szachownica znaleziona   
 
          if (!patternfound)
          {
@@ -88,6 +92,8 @@ using namespace std;
 
          {
 
+	 //wlasciwe znalezienie translacji i rotacji 
+		 
          solvePnP(corners_3d, corners, camera_matrix, dist_coeffs, rotation_vector, translation_vector);
 
         //wyrzucenie do konsoli
@@ -102,8 +108,6 @@ using namespace std;
 
          imshow ("Original", imgOriginal_8bit);
 
-
-
         if (waitKey(30) == 27) //wait for 'esc' key press for 30ms. If 'esc' key is pressed, break loop
             {
                  cout << "Nacisnieto esc - wyjscie" << endl;
@@ -115,6 +119,3 @@ using namespace std;
     return 0;
 
    }
-
-
-

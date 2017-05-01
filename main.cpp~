@@ -133,7 +133,7 @@ using namespace std;
 
 
 
-        if (waitKey(30) == 27) //konczymy program escape
+        if (waitKey(30) == 27) //konczymy program eskejpem
             {
                  cout << "Nacisnieto esc - wyjscie" << endl;
                   break;

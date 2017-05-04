@@ -9,12 +9,23 @@
 #include <highgui.h>
 #include <math.h>
 
+//definicje stałych
 #define PI 3.14159
+//definicje danych dotyczących planszy
+#define pattern_colls 4
+#define pattern_rows 7
+#define bok_kwad 8.0
+#define l_punktow (pattern_colls*pattern_rows)
+
+using namespace cv;
+using namespace std;
 
 double deg2rad(double angle_in_degrees);
 double rad2deg(double angle_in_radians);
 
+void drawGrid(Mat &imgThresholded);
+void writeMsg(Mat &imgThresholded);
+void chessboardParam();
+
 void imageCb(const sensor_msgs::ImageConstPtr& msg);
-void createTrackbars();
-void imageFilters(cv_bridge::CvImagePtr &cv_ptr, cv::Mat &imgThresholded, char color);
-std::vector<cv::Vec3f> circleFinding(cv_bridge::CvImagePtr &cv_ptr, cv::Mat &imgThresholded);
+

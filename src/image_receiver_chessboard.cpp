@@ -1,58 +1,67 @@
 #include "image_receiver_chessboard_header.h"
 
+//zmienna przechowująca informacje o odnalezieniu obiektu
+bool found=false;
 
-int fontFace = cv::FONT_HERSHEY_DUPLEX;
-//początkowe wartości do filtra. Po dobraniu można to wywalić i w ich miejsce wsadziś stałe
+//Zmienne pomocnicze do wyswietlania komunikatów
+int fontFace = FONT_HERSHEY_DUPLEX;
+Point hor_text_base(0, 0);
+Point vert_text_base(0, 0);
+Point dist_text_base(0, 0);
+string hor_msg;
+string vert_msg;
+string dist_msg;
+int hor_state=-1;
+int vert_state=-1;
+int dist_state=-1;
 
-using namespace cv;
-using namespace std;
+double current_x=0;
+double current_y=0;
+double current_z=0;
 
-Mat frame;
-double focal_length;
-Point2d center;
+double desired_x=0;
+double desired_y=0;
+double desired_z=150;
+
+//zmienne do odczytywania i identyfikacji obrazu
+bool first_run=true;
+int height,width;			//zmienne do przechowywania wymiarów obrazu
 Mat camera_matrix;
 Mat dist_coeffs;
-Mat imgOriginal; //obiekt, w ktorym beda przechowane kolejne klatki z kamery
 Mat imgOriginal_8bit; //obiekt, w którym bedzie przechowana skonwertowana klatka - wymaga tego jedna z funkcji
+Mat rotation_vector(3,1,DataType<double>::type); // Rotation in axis-angle form
+Mat rotation_array(3,3,DataType<double>::type);
+Mat translation_vector(3,1,DataType<double>::type);
+
+Point2d center;
 
 vector<Point2f> corners; //wektor elementow point2f - przechowa wspolrzedne znalezionych krancow pol szachownicy
-
-Mat rotation_vector(3,1,cv::DataType<double>::type); // Rotation in axis-angle form
-Mat rotation_array(3,3,cv::DataType<double>::type); // Rotation in axis-angle form
-
-Mat translation_vector(3,1,cv::DataType<double>::type);
-//cv::Mat rvec(3,1,cv::DataType<double>::type);
-int l_punktow;
-int pattern_colls=4;
-int pattern_rows=7;
-Size patternsize(pattern_colls,pattern_rows); //funkcja findchessboardcorners musi znac wielkosc szachownicy - podaje ja tutaj
-
-float bok_kwad=8.0; //w centymetrach
-
 vector<Point3f> corners_3d;
 
+//dane dot. planszy
+Size patternsize(pattern_colls,pattern_rows); //funkcja findchessboardcorners musi znac wielkosc szachownicy - podaje ja tutaj
 
-bool first_run=true;
 image_transport::Subscriber image_sub_; //do subskrypcji obrazu
 image_transport::Publisher image_pub_;	//do publikacji przerobionego obrazu
+ros::Publisher control_pub;
 
 
 int main(int argc, char** argv)
 {
-	std::cout<<"Image_receiver started!"<<std::endl;
-	ros::init(argc, argv, "image_converter");
+	std::cout<<"Image_receiver_chessboard started!"<<std::endl;
+	ros::init(argc, argv, "image_receiver_chessboard");
 	ros::NodeHandle nh;
 	ros::Subscriber image_sub_;
 	ros::Publisher image_pub_;
-	image_sub_ = nh.subscribe("/camera/image", 10,	imageCb);
-	image_pub_ = nh.advertise<sensor_msgs::Image>("/image_converter/output_video", 1);
 
-	cv::namedWindow("Window with detection");
+	//image_sub_ = nh.subscribe("/ardrone/front/image_raw",	1, imageCb);  //fizyczny AR.DRONE 2.0
+	image_sub_ = nh.subscribe("/camera/image",	1,	imageCb); //Wewnęrzna kamera web, imitowana przez image_publisher
+
+	image_pub_ = nh.advertise<sensor_msgs::Image>("/image_converter/output_video", 1);
 
 	ros::spin();
 
-	cv::destroyWindow("Window with detection");
-	std::cout<<std::endl<<"Image_receiver closed!"<<std::endl;
+	std::cout<<std::endl<<"Image_receiver_chessboard closed!"<<std::endl;
 	return 0;
 }
 
@@ -69,88 +78,75 @@ void imageCb(const sensor_msgs::ImageConstPtr& msg)
 		ROS_ERROR("cv_bridge exception: %s", e.what());
 		return;
 	}
-
 	if (cv_ptr->image.rows > 60 && cv_ptr->image.cols > 60)
 	{
 		if(first_run)
 		{
 			first_run=false;
-			frame = cv_ptr->image;
-			focal_length =frame.cols; // aproksymacja ogniskowej
-			center = Point2d(frame.cols/2,frame.rows/2);
-			camera_matrix = (Mat_<double>(3,3) << focal_length, 0, center.x, 0 , focal_length, center.y, 0, 0, 1);
+			//ustalenie parametrów obrazu
+			height = cv_ptr->image.rows;
+			width = cv_ptr->image.cols;
+			center = Point2d(cv_ptr->image.cols/2,cv_ptr->image.rows/2);
+			camera_matrix = (Mat_<double>(3,3) << width, 0, center.x, 0 , width, center.y, 0, 0, 1);
 			dist_coeffs =Mat::zeros(4,1,DataType<double>::type); // Assuming no lens distortion
 			cout << "Camera Matrix " << endl << camera_matrix << endl;
-			l_punktow=pattern_rows*pattern_colls;
-			//zeby wpisac do wektora, musze najpierw stworzyc 54 puste elementy - tu chyba lezal blad
 
-			for (int p=0; p<l_punktow; p++)
-			{
+			//ustalenie miejsca wyświetlania komunikatów
+			hor_text_base.x=0;
+			hor_text_base.y=height-10;
+			vert_text_base.x=0;
+			vert_text_base.y=height-40;
+			dist_text_base.x=0;
+			dist_text_base.y=height-70;
 
-				corners_3d.push_back(Point3d(0,0,0));
-
-			}
-			corners_3d[0].x=-bok_kwad*((pattern_colls-1.0)/2.0);
-			corners_3d[0].y=-bok_kwad*((pattern_rows-1.0)/2.0);
-			corners_3d[0].z=0;
-
-			for (int i=1; i<l_punktow; i++)
-			{
-
-				corners_3d[i].x=corners_3d[i-1].x+bok_kwad;
-
-					if ((i+1)%pattern_colls==0) // (jak dojedzie do konca wiersza to zeruj x, zwiększ y o wysokosc kwadratu - wypelniamy wyższy wiersz od lewej
-					{
-					corners_3d[i].x=0;
-					corners_3d[i].y=corners_3d[i-1].y+bok_kwad;
-
-					}
-
-					else
-
-					{
-						corners_3d[i].y=corners_3d[i-1].y; //jak nie dojechal, to nie zmieniaj wysokosci y
-					}
-
-					corners_3d[i].z=0; //bo szachownica jest plaska
-			}
+			//ustalenie parametrów szachownicy, wypełnienie wektorów punktami
+			chessboardParam();
+			cout << l_punktow << endl;
 		}
-		imgOriginal=cv_ptr->image;
-		imgOriginal.convertTo(imgOriginal_8bit, CV_8U); //konwersja do 8-bitowej glebi - takie obrazy przyjmuje funkcja znajdujaca findchessboardcorners()
 
+		cv_ptr->image.convertTo(imgOriginal_8bit, CV_8U); //konwersja do 8-bitowej glebi - takie obrazy przyjmuje funkcja znajdujaca findchessboardcorners()
+		//poszukiwanie szachownicy
 		bool patternfound = findChessboardCorners(imgOriginal_8bit, patternsize, corners, CALIB_CB_ADAPTIVE_THRESH + CALIB_CB_NORMALIZE_IMAGE + CALIB_CB_FAST_CHECK);
-
-		//corners wypelnione znalezionymi wspolrzednymi
 
 		if (!patternfound)
 		{
-			cout<<"Nie znalazlem szachownicy!"<<endl;
+			found=false;
+			hor_state=vert_state=dist_state=-1;
+			hor_msg="";
+			vert_msg="Chessboard not found";
+			dist_msg="";
+			//cout<<"Nie znalazlem szachownicy!"<<endl;
 		}
-
 		if (patternfound)
-
 		{
-
+			found=true;
 			solvePnP(corners_3d, corners, camera_matrix, dist_coeffs, rotation_vector, translation_vector);
 			Rodrigues(rotation_vector, rotation_array);
 
 			//cout<<"Wektor rotacji"<<rotation_vector<<endl;
-		    //cout<<"Wektor translacji "<<translation_vector<<endl;
-
-		    cout<<"x: "<<translation_vector.at<double>(0,0) << " y: "<<translation_vector.at<double>( 1,0) << " z: "<<translation_vector.at<double>(2,0) << endl;
-
+			//cout<<"Wektor translacji "<<translation_vector<<endl;
+			current_x=translation_vector.at<double>(0,0);
+			current_y=translation_vector.at<double>(1,0);
+			current_z=translation_vector.at<double>(2,0);
+			double phi, theta, psi;
+			phi=rad2deg(translation_vector.at<double>(0,0));
+			theta = rad2deg(translation_vector.at<double>(1,0));
+			psi=rad2deg(translation_vector.at<double>(2,0));
+			//cout << "phi " << phi <<" theta " << theta << " psi " <<  psi<<endl;
+			//cout<<"x: "<< current_x << " y: "<< current_y << " z: "<< current_z << endl;
 		}
-
 		drawChessboardCorners(imgOriginal_8bit, patternsize, corners, patternfound); //rysowanie linii
+		//rysowanie komunikatów i siatki
+		writeMsg(imgOriginal_8bit);
+		drawGrid(imgOriginal_8bit);
 
 		imshow ("Original", imgOriginal_8bit);//wyrzucenie do okna
-
-
 		image_pub_.publish(cv_ptr->toImageMsg());
 
-		cv::waitKey(3);
+		waitKey(3);
 
 	}
+
 }
 
 double deg2rad(double angle_in_degrees)
@@ -163,4 +159,94 @@ double rad2deg(double angle_in_radians)
 {
 	angle_in_radians=fmod((angle_in_radians+2*PI),(2*PI));
 	return angle_in_radians * 180.0 / PI;
+}
+
+
+void drawGrid(Mat &imgThresholded)
+{
+	Point left(0, height/2);
+	Point right(width, height/2);
+	Point top(width/2, 0);
+	Point bottom(width/2, height);
+	//line(Mat& img, Point pt1, Point pt2, const Scalar& color, int thickness=1, int lineType=8, int shift=0)
+
+	line(imgThresholded, left, right, Scalar(160, 160, 160), 0.5);
+	line(imgThresholded, top, bottom, Scalar(160, 160, 160), 0.5);
+}
+void writeMsg(Mat &imgThresholded)
+{
+	if(hor_state==-1)
+	{
+		putText(imgThresholded, hor_msg, hor_text_base, fontFace, 1, CV_RGB(204,0,0), 1, 8);
+	}
+	else if(hor_state==0)
+	{
+		putText(imgThresholded, hor_msg, hor_text_base, fontFace, 1, CV_RGB(0,204,0), 1, 8);
+	}
+	else if(hor_state==1)
+	{
+		putText(imgThresholded, hor_msg, hor_text_base, fontFace, 1, CV_RGB(204,204,0), 1, 8);
+	}
+
+	if(vert_state==-1)
+	{
+		putText(imgThresholded, vert_msg, vert_text_base, fontFace, 1, CV_RGB(204,0,0), 1, 8);
+	}
+	else if(vert_state==0)
+	{
+		putText(imgThresholded, vert_msg, vert_text_base, fontFace, 1, CV_RGB(0,204,0), 1, 8);
+	}
+	else if(vert_state==1)
+	{
+		putText(imgThresholded, vert_msg, vert_text_base, fontFace, 1, CV_RGB(204,204,0), 1, 8);
+	}
+
+	if(dist_state==-1)
+	{
+		putText(imgThresholded, dist_msg, dist_text_base, fontFace, 1, CV_RGB(204,0,0), 1, 8);
+	}
+	else if(dist_state==0)
+	{
+		putText(imgThresholded, dist_msg, dist_text_base, fontFace, 1, CV_RGB(0,204,0), 1, 8);
+	}
+	else if(dist_state==1)
+	{
+		putText(imgThresholded, dist_msg, dist_text_base, fontFace, 1, CV_RGB(204,204,0), 1, 8);
+	}
+}
+void chessboardParam()
+{
+	//l_punktow=pattern_rows*pattern_colls;
+
+	for (int p=0; p<l_punktow; p++)
+	{
+
+		corners_3d.push_back(Point3d(0,0,0));
+
+	}
+	corners_3d[0].x=-bok_kwad*((pattern_colls-1.0)/2.0);
+	corners_3d[0].y=-bok_kwad*((pattern_rows-1.0)/2.0);
+	corners_3d[0].z=0;
+
+	for (int i=1; i<l_punktow; i++)
+	{
+
+		corners_3d[i].x=corners_3d[i-1].x+bok_kwad;
+
+		if ((i+1)%pattern_colls==0) // (jak dojedzie do konca wiersza to zeruj x, zwiększ y o wysokosc kwadratu - wypelniamy wyższy wiersz od lewej
+		{
+			corners_3d[i].x=0;
+			corners_3d[i].y=corners_3d[i-1].y+bok_kwad;
+
+		}
+
+		else
+
+		{
+			corners_3d[i].y=corners_3d[i-1].y; //jak nie dojechal, to nie zmieniaj wysokosci y
+		}
+
+		corners_3d[i].z=0; //bo szachownica jest plaska
+	}
+
 }

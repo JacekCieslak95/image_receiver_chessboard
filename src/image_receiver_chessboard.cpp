@@ -134,6 +134,8 @@ void imageCb(const sensor_msgs::ImageConstPtr& msg)
 			psi=rad2deg(translation_vector.at<double>(2,0));
 			//cout << "phi " << phi <<" theta " << theta << " psi " <<  psi<<endl;
 			//cout<<"x: "<< current_x << " y: "<< current_y << " z: "<< current_z << endl;
+			findControl(cv_ptr);
+
 		}
 		drawChessboardCorners(imgOriginal_8bit, patternsize, corners, patternfound); //rysowanie linii
 		//rysowanie komunikatów i siatki
@@ -249,4 +251,82 @@ void chessboardParam()
 		corners_3d[i].z=0; //bo szachownica jest plaska
 	}
 
+}
+void findControl(cv_bridge::CvImagePtr &cv_ptr)
+{
+
+	if (current_x< (desired_x-5))
+	{
+		hor_state=1;
+		hor_msg="go right! x=";
+		ostringstream convert;   // stream used for the conversion
+		convert <<hor_msg << current_x;      // insert the textual representation of 'Number' in the characters in the stream
+		hor_msg = convert.str();
+	}
+	else if (current_x> (desired_x+5))
+	{
+		hor_state=1;
+		hor_msg="go left! x=";
+		ostringstream convert;   // stream used for the conversion
+		convert <<hor_msg << current_x;      // insert the textual representation of 'Number' in the characters in the stream
+		hor_msg = convert.str();
+	}
+	else
+	{
+		hor_state=0;
+		hor_msg="Horizonal - OK";
+		ostringstream convert;   // stream used for the conversion
+		convert <<hor_msg << current_x;      // insert the textual representation of 'Number' in the characters in the stream
+		hor_msg = convert.str();	}
+
+	if (current_y< (desired_y-5))
+	{
+		vert_state=1;
+		vert_msg="go up! y=";
+		ostringstream convert;   // stream used for the conversion
+		convert <<vert_msg << current_y;      // insert the textual representation of 'Number' in the characters in the stream
+		vert_msg = convert.str();
+	}
+	else if (current_y> (desired_y+5))
+	{
+		vert_state=1;
+		vert_msg="go down! y=";
+		ostringstream convert;   // stream used for the conversion
+		convert <<vert_msg << current_y;      // insert the textual representation of 'Number' in the characters in the stream
+		vert_msg = convert.str();
+	}
+	else
+	{
+		vert_state=0;
+		vert_msg="Vertical - OK";
+		ostringstream convert;   // stream used for the conversion
+		convert <<vert_msg << current_y;      // insert the textual representation of 'Number' in the characters in the stream
+		vert_msg = convert.str();
+	}
+
+	if (current_z< (desired_z-5))
+	{
+		dist_state=1;
+		dist_msg="too close! z=";
+		ostringstream convert;   // stream used for the conversion
+		convert <<dist_msg << current_z;      // insert the textual representation of 'Number' in the characters in the stream
+		dist_msg = convert.str();
+
+	}
+	else if (current_z> (desired_z+5))
+	{
+		dist_state=1;
+		dist_msg="too far! z=";
+		ostringstream convert;   // stream used for the conversion
+		convert <<dist_msg << current_z;      // insert the textual representation of 'Number' in the characters in the stream
+		dist_msg = convert.str();
+	}
+	else
+	{
+		dist_state=0;
+		dist_msg="Distance - OK";
+		ostringstream convert;   // stream used for the conversion
+		convert <<dist_msg << current_z;      // insert the textual representation of 'Number' in the characters in the stream
+		dist_msg = convert.str();
+	}
 }

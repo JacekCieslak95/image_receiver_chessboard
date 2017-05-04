@@ -12,9 +12,9 @@
 //definicje stałych
 #define PI 3.14159
 //definicje danych dotyczących planszy
-#define pattern_colls 4
-#define pattern_rows 7
-#define bok_kwad 8.0
+#define pattern_colls 8
+#define pattern_rows 5
+#define bok_kwad 3.0
 #define l_punktow (pattern_colls*pattern_rows)
 
 using namespace cv;
@@ -26,6 +26,7 @@ double rad2deg(double angle_in_radians);
 void drawGrid(Mat &imgThresholded);
 void writeMsg(Mat &imgThresholded);
 void chessboardParam();
+void findControl(cv_bridge::CvImagePtr &cv_ptr);
 
 void imageCb(const sensor_msgs::ImageConstPtr& msg);
 

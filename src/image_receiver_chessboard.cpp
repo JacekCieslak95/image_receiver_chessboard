@@ -101,7 +101,6 @@ void imageCb(const sensor_msgs::ImageConstPtr& msg)
 
 			//ustalenie parametrów szachownicy, wypełnienie wektorów punktami
 			chessboardParam();
-			cout << l_punktow << endl;
 		}
 
 		cv_ptr->image.convertTo(imgOriginal_8bit, CV_8U); //konwersja do 8-bitowej glebi - takie obrazy przyjmuje funkcja znajdujaca findchessboardcorners()

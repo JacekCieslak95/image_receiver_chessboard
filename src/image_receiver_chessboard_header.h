@@ -29,4 +29,4 @@ void chessboardParam();
 void findControl(cv_bridge::CvImagePtr &cv_ptr);
 
 void imageCb(const sensor_msgs::ImageConstPtr& msg);
-
+static int gcd (int a, int b);

@@ -87,6 +87,10 @@ void imageCb(const sensor_msgs::ImageConstPtr& msg)
 			height = cv_ptr->image.rows;
 			width = cv_ptr->image.cols;
 			center = Point2d(cv_ptr->image.cols/2,cv_ptr->image.rows/2);
+		    int GCD_param = gcd(width,height);
+		    int ratio_hor= width/GCD_param;
+			int ratio_vert=height/GCD_param;
+		    cout << "gcd("<<width<<","<<height<<")="<<GCD_param<<" ratio=" << ratio_hor<<":"<<ratio_vert<<endl;
 			camera_matrix = (Mat_<double>(3,3) << width, 0, center.x, 0 , width, center.y, 0, 0, 1);
 			dist_coeffs =Mat::zeros(4,1,DataType<double>::type); // Assuming no lens distortion
 			cout << "Camera Matrix " << endl << camera_matrix << endl;
@@ -98,7 +102,6 @@ void imageCb(const sensor_msgs::ImageConstPtr& msg)
 			vert_text_base.y=height-40;
 			dist_text_base.x=0;
 			dist_text_base.y=height-70;
-
 			//ustalenie parametrów szachownicy, wypełnienie wektorów punktami
 			chessboardParam();
 		}
@@ -328,4 +331,7 @@ void findControl(cv_bridge::CvImagePtr &cv_ptr)
 		convert <<dist_msg << current_z;      // insert the textual representation of 'Number' in the characters in the stream
 		dist_msg = convert.str();
 	}
+}
+static int gcd (int a, int b) {
+    return (b == 0) ? a : gcd (b, a%b);
 }

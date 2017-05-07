@@ -4,16 +4,13 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
-../src/image_receiver_chessboard.cpp \
-../src/test.cpp 
+../src/image_receiver_chessboard.cpp 
 
 OBJS += \
-./src/image_receiver_chessboard.o \
-./src/test.o 
+./src/image_receiver_chessboard.o 
 
 CPP_DEPS += \
-./src/image_receiver_chessboard.d \
-./src/test.d 
+./src/image_receiver_chessboard.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes

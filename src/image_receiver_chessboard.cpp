@@ -54,8 +54,8 @@ int main(int argc, char** argv)
 	ros::Subscriber image_sub_;
 	ros::Publisher image_pub_;
 
-	image_sub_ = nh.subscribe("/ardrone/front/image_raw",	1, imageCb);  //fizyczny AR.DRONE 2.0
-	//image_sub_ = nh.subscribe("/camera/image",	1,	imageCb); //Wewnęrzna kamera web, imitowana przez image_publisher
+	//image_sub_ = nh.subscribe("/ardrone/front/image_raw",	1, imageCb);  //fizyczny AR.DRONE 2.0
+	image_sub_ = nh.subscribe("/camera/image",	1,	imageCb); //Wewnęrzna kamera web, imitowana przez image_publisher
 
 	image_pub_ = nh.advertise<sensor_msgs::Image>("/image_converter/output_video", 1);
 
@@ -87,10 +87,10 @@ void imageCb(const sensor_msgs::ImageConstPtr& msg)
 			height = cv_ptr->image.rows;
 			width = cv_ptr->image.cols;
 			center = Point2d(cv_ptr->image.cols/2,cv_ptr->image.rows/2);
-		    int GCD_param = gcd(width,height);
-		    int ratio_hor= width/GCD_param;
+			int GCD_param = gcd(width,height);
+			int ratio_hor= width/GCD_param;
 			int ratio_vert=height/GCD_param;
-		    cout << "gcd("<<width<<","<<height<<")="<<GCD_param<<" ratio=" << ratio_hor<<":"<<ratio_vert<<endl;
+			cout << "gcd("<<width<<","<<height<<")="<<GCD_param<<" ratio=" << ratio_hor<<":"<<ratio_vert<<endl;
 			//camera_matrix = (Mat_<double>(3,3) << 692.0438330806977, 0, 311.165894880295, 0, 691.6883188833331, 170.3563054332899, 0, 0, 1);
 			camera_matrix = (Mat_<double>(3,3) << width, 0, center.x, 0 , width, center.y, 0, 0, 1);
 			//dist_coeffs=(Mat_ <double>(5,1)<<-0.9770726329851025, 3.097064250216448, -0.0170009823405978, 0.01192658072486791, -6.338134825259841);
@@ -133,7 +133,9 @@ void imageCb(const sensor_msgs::ImageConstPtr& msg)
 			current_y=translation_vector.at<double>(1,0);
 			current_z=translation_vector.at<double>(2,0);
 			//korekta
-			current_z=(1-0.24)*current_z;
+			//current_z=(1-0.24)*current_z;
+			current_z=(1-0.221)*current_z-5.6;
+
 			double phi, theta, psi;
 			phi=rad2deg(translation_vector.at<double>(0,0));
 			theta = rad2deg(translation_vector.at<double>(1,0));
@@ -265,77 +267,79 @@ void findControl(cv_bridge::CvImagePtr &cv_ptr)
 	{
 		hor_state=1;
 		hor_msg="go right! x=";
-		ostringstream convert;   // stream used for the conversion
-		convert <<hor_msg << current_x;      // insert the textual representation of 'Number' in the characters in the stream
-		hor_msg = convert.str();
+		stringstream stream;
+		stream << hor_msg << fixed << setprecision(2) << current_x;
+		hor_msg = stream.str();
 	}
 	else if (current_x> (desired_x+5))
 	{
 		hor_state=1;
 		hor_msg="go left! x=";
-		ostringstream convert;   // stream used for the conversion
-		convert <<hor_msg << current_x;      // insert the textual representation of 'Number' in the characters in the stream
-		hor_msg = convert.str();
+		stringstream stream;
+		stream << hor_msg << fixed << setprecision(2) << current_x;
+		hor_msg = stream.str();
 	}
 	else
 	{
 		hor_state=0;
-		hor_msg="Horizonal - OK";
-		ostringstream convert;   // stream used for the conversion
-		convert <<hor_msg << current_x;      // insert the textual representation of 'Number' in the characters in the stream
-		hor_msg = convert.str();	}
+		hor_msg="Hor - OK! x=";
+		stringstream stream;
+		stream << hor_msg << fixed << setprecision(2) << current_x;
+		hor_msg = stream.str();
+	}
 
 	if (current_y< (desired_y-5))
 	{
 		vert_state=1;
 		vert_msg="go up! y=";
-		ostringstream convert;   // stream used for the conversion
-		convert <<vert_msg << current_y;      // insert the textual representation of 'Number' in the characters in the stream
-		vert_msg = convert.str();
+		stringstream stream;
+		stream << vert_msg << fixed << setprecision(2) << current_y;
+		vert_msg = stream.str();
+
 	}
 	else if (current_y> (desired_y+5))
 	{
 		vert_state=1;
 		vert_msg="go down! y=";
-		ostringstream convert;   // stream used for the conversion
-		convert <<vert_msg << current_y;      // insert the textual representation of 'Number' in the characters in the stream
-		vert_msg = convert.str();
+		stringstream stream;
+		stream << vert_msg << fixed << setprecision(2) << current_y;
+		vert_msg = stream.str();
 	}
 	else
 	{
 		vert_state=0;
-		vert_msg="Vertical - OK";
-		ostringstream convert;   // stream used for the conversion
-		convert <<vert_msg << current_y;      // insert the textual representation of 'Number' in the characters in the stream
-		vert_msg = convert.str();
+		vert_msg="Vert - OK! y=";
+		stringstream stream;
+		stream << vert_msg << fixed << setprecision(2) << current_y;
+		vert_msg = stream.str();
 	}
 
 	if (current_z< (desired_z-5))
 	{
 		dist_state=1;
 		dist_msg="too close! z=";
-		ostringstream convert;   // stream used for the conversion
-		convert <<dist_msg << current_z;      // insert the textual representation of 'Number' in the characters in the stream
-		dist_msg = convert.str();
+		stringstream stream;
+		stream << dist_msg << fixed << setprecision(2) << current_z;
+		dist_msg = stream.str();
 
 	}
 	else if (current_z> (desired_z+5))
 	{
 		dist_state=1;
 		dist_msg="too far! z=";
-		ostringstream convert;   // stream used for the conversion
-		convert <<dist_msg << current_z;      // insert the textual representation of 'Number' in the characters in the stream
-		dist_msg = convert.str();
+		stringstream stream;
+		stream << dist_msg << fixed << setprecision(2) << current_z;
+		dist_msg = stream.str();
 	}
 	else
 	{
 		dist_state=0;
-		dist_msg="Distance - OK";
-		ostringstream convert;   // stream used for the conversion
-		convert <<dist_msg << current_z;      // insert the textual representation of 'Number' in the characters in the stream
-		dist_msg = convert.str();
+		dist_msg="Dist - OK! z=";
+		stringstream stream;
+		stream << dist_msg << fixed << setprecision(2) << current_z;
+		dist_msg = stream.str();
 	}
 }
 static int gcd (int a, int b) {
-    return (b == 0) ? a : gcd (b, a%b);
+	return (b == 0) ? a : gcd (b, a%b);
 }

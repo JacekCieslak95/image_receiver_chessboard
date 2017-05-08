@@ -12,9 +12,9 @@
 //definicje stałych
 #define PI 3.14159
 //definicje danych dotyczących planszy
-#define pattern_colls 8
-#define pattern_rows 5
-#define bok_kwad 3.0
+#define pattern_colls 7
+#define pattern_rows 4
+#define bok_kwad 8.0
 #define l_punktow (pattern_colls*pattern_rows)
 
 using namespace cv;

@@ -54,8 +54,8 @@ int main(int argc, char** argv)
 	ros::Subscriber image_sub_;
 	ros::Publisher image_pub_;
 
-	//image_sub_ = nh.subscribe("/ardrone/front/image_raw",	1, imageCb);  //fizyczny AR.DRONE 2.0
-	image_sub_ = nh.subscribe("/camera/image",	1,	imageCb); //Wewnęrzna kamera web, imitowana przez image_publisher
+	image_sub_ = nh.subscribe("/ardrone/front/image_raw",	1, imageCb);  //fizyczny AR.DRONE 2.0
+	//image_sub_ = nh.subscribe("/camera/image",	1,	imageCb); //Wewnęrzna kamera web, imitowana przez image_publisher
 
 	image_pub_ = nh.advertise<sensor_msgs::Image>("/image_converter/output_video", 1);
 
@@ -91,7 +91,9 @@ void imageCb(const sensor_msgs::ImageConstPtr& msg)
 		    int ratio_hor= width/GCD_param;
 			int ratio_vert=height/GCD_param;
 		    cout << "gcd("<<width<<","<<height<<")="<<GCD_param<<" ratio=" << ratio_hor<<":"<<ratio_vert<<endl;
+			//camera_matrix = (Mat_<double>(3,3) << 692.0438330806977, 0, 311.165894880295, 0, 691.6883188833331, 170.3563054332899, 0, 0, 1);
 			camera_matrix = (Mat_<double>(3,3) << width, 0, center.x, 0 , width, center.y, 0, 0, 1);
+			//dist_coeffs=(Mat_ <double>(5,1)<<-0.9770726329851025, 3.097064250216448, -0.0170009823405978, 0.01192658072486791, -6.338134825259841);
 			dist_coeffs =Mat::zeros(4,1,DataType<double>::type); // Assuming no lens distortion
 			cout << "Camera Matrix " << endl << camera_matrix << endl;
 
@@ -130,6 +132,8 @@ void imageCb(const sensor_msgs::ImageConstPtr& msg)
 			current_x=translation_vector.at<double>(0,0);
 			current_y=translation_vector.at<double>(1,0);
 			current_z=translation_vector.at<double>(2,0);
+			//korekta
+			current_z=(1-0.24)*current_z;
 			double phi, theta, psi;
 			phi=rad2deg(translation_vector.at<double>(0,0));
 			theta = rad2deg(translation_vector.at<double>(1,0));
